@@ -1,16 +1,16 @@
-**** Heuristic Optimization assignment.
+## Heuristic Optimization assignment.
 Adapted by Jérémie Dubois-Lacoste from the ILSLOP implementation
 of Tommaso Schiavinotto.
 
 
 
-*** To compile/clean:
+### To compile/clean:
 make
 make clean
 
 
 
-*** To run on one instance:
+### To run on one instance:
 
 Paremeters : 
 first : -i <instance file>
@@ -24,5 +24,5 @@ Examples:
 
 
 
-*** Best known solutions:
+### Best known solutions:
 The best known solutions are in best_known/best_known.txt
