@@ -84,7 +84,7 @@ void chenery_and_watanabe(long int *s) {
 
             long long int attractiveness = 0;
             for (j = 0; j < PSize; j++) {
-                if (!used[j] && j != i) {
+                if (!used[j] && j != i) { // only consider columns that are not used and not the same as the current row
                     attractiveness += CostMat[i][j];
                 }
             }
@@ -94,12 +94,12 @@ void chenery_and_watanabe(long int *s) {
                 bestRow = i;
             }
         }
-
         if (bestRow < 0) break;
 
         s[pos] = bestRow;
         used[bestRow] = 1;
     }
+
 
     free(used);
 }
@@ -155,6 +155,7 @@ static int firstImprovement(long int *s, Neighborhood neighborhood) {
             for (i = 0; i < PSize - 1; i++) {
                 transpose(s, i);
                 newCost = computeCost(s);
+                
                 if (newCost > currentCost) {
                     return 1;
                 }
@@ -165,11 +166,14 @@ static int firstImprovement(long int *s, Neighborhood neighborhood) {
         case EXCHANGE:
             for (i = 0; i < PSize - 1; i++) {
                 for (j = i + 1; j < PSize; j++) {
+
                     exchange(s, i, j);
+                    
                     newCost = computeCost(s);
                     if (newCost > currentCost) {
                         return 1;
                     }
+
                     exchange(s, i, j); // undo if no improvement 
                 }
             }
@@ -252,25 +256,6 @@ static int bestImprovement(long int *s, Neighborhood neighborhood) {
     return 0; 
 }
 
-
-/* Iterative Improvement */
-
-int iterativeImprovement(long int *s, Neighborhood neighborhood, PivotingRule pivotingRule, InitialSolution initialSolution) {
-    if (initialSolution == CHENERY_WATANABE) {
-        chenery_and_watanabe(s);
-    } else {
-        createRandomSolution(s);
-    }
-
-    if (pivotingRule == FIRST_IMPROVEMENT) {
-        firstImprovement(s, neighborhood);
-    } else {
-        bestImprovement(s, neighborhood);
-    }
- 
-    return 0;
-}
-
 /* Variable Neighbourhoof Descent */
 
 void VND(long int *s, int order) {
@@ -303,4 +288,28 @@ void VND(long int *s, int order) {
             i++; // move to the next neighborhood
         }
     }
+}
+
+/* Iterative Improvement */
+
+int iterativeImprovement(long int *s, Neighborhood neighborhood,
+                         PivotingRule pivotingRule,
+                         InitialSolution initialSolution) {
+    if (initialSolution == CHENERY_WATANABE)
+        chenery_and_watanabe(s);
+    else
+        createRandomSolution(s);
+
+    int improved;
+    do {
+        if (pivotingRule == FIRST_IMPROVEMENT){
+            improved = firstImprovement(s, neighborhood);
+        }
+        else {
+            improved = bestImprovement(s, neighborhood);
+        }
+        printf("\n"); // DEBUG
+    } while (improved);
+
+    return 0;
 }

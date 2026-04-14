@@ -288,6 +288,8 @@ int main(int argc, char **argv) {
     setbuf(stdout, NULL);
     setbuf(stderr, NULL);
 
+    Seed = 123; // fixed seed for reproducibility
+
     if (argc < 2) {
         fprintf(stderr,
             "Usage:\n"
