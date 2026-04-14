@@ -134,7 +134,7 @@ long int **readInstance(const char *filename) {
     return(r);
 }
 
-long long int readBestKnown(const char *instanceName) {  
+long long int readBestKnownValue(const char *instanceName) {  
     FILE *f = fopen("best_known/best_known.txt", "r");
     if (!f) return -1;
     
