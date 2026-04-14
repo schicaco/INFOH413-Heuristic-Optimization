@@ -227,7 +227,7 @@ void runAllMode(void) {
     FILE *csv = fopen("iterative_improvement_results.csv", "r");
     if (!csv) {
         csv = fopen("iterative_improvement_results.csv", "w");
-        fprintf(csv, "instance,pivoting_rule,neighborhood,initial_solution,cost,best_known,delta_percent,time_seconds\n");
+        fprintf(csv, "instance,pivoting_rule,neighborhood,initial_solution,best_known,cost,delta_percent,time_seconds\n");
         fclose(csv);
     } else {
         fclose(csv);
@@ -236,7 +236,7 @@ void runAllMode(void) {
     csv = fopen("vnd_results.csv", "r");
     if (!csv) {
         csv = fopen("vnd_results.csv", "w");
-        fprintf(csv, "instance,order,cost,best_known,delta_percent,time_seconds\n");
+        fprintf(csv, "instance,order,best_known,cost,delta_percent,time_seconds\n");
         fclose(csv);
     } else {
         fclose(csv);
@@ -271,8 +271,8 @@ void runAllMode(void) {
             continue;
         }
 
-        runAllIterImprovementAlgo(currentSolution, bestKnown, entry->d_name);
-        // runAllVNDAlgo(currentSolution, bestKnown, entry->d_name);
+        // runAllIterImprovementAlgo(currentSolution, bestKnown, entry->d_name);
+        runAllVNDAlgo(currentSolution, bestKnown, entry->d_name);
 
         free(currentSolution);
     }
