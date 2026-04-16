@@ -16,9 +16,7 @@ PivotingRule PivotingRuleChoice;
 Neighborhood NeighborhoodChoice;
 InitialSolution InitialSolutionChoice;
 
-/* ------------------------------------------------------------ */
-/* Read command-line options                                    */
-/* ------------------------------------------------------------ */
+
 void readOpts(int argc, char **argv) {
     int opt;
     int option_index = 0;
@@ -101,9 +99,7 @@ void readOpts(int argc, char **argv) {
 }
 
 
-/* ------------------------------------------------------------ */
-/* Run all iterative improvement algorithms                     */
-/* ------------------------------------------------------------ */
+
 void runAllIterImprovementAlgo(long int *s, long long int bestKnown, const char *instanceName) {
     PivotingRule pivotingRules[] = {FIRST_IMPROVEMENT, BEST_IMPROVEMENT};
     Neighborhood neighborhoods[] = {TRANSPOSE, EXCHANGE, INSERT};
@@ -148,9 +144,7 @@ void runAllIterImprovementAlgo(long int *s, long long int bestKnown, const char 
     fclose(csv);
 }
 
-/* ------------------------------------------------------------ */
-/* Run all VND algorithms                                       */
-/* ------------------------------------------------------------ */
+
 void runAllVNDAlgo(long int *s, long long int bestKnown, const char *instanceName) {
     int orders[] = {1, 2};
     const char *orderNames[] = {"order1", "order2"};
@@ -184,9 +178,7 @@ void runAllVNDAlgo(long int *s, long long int bestKnown, const char *instanceNam
     fclose(csv);
 }
 
-/* ------------------------------------------------------------ */
-/* Single-instance mode                                         */
-/* ------------------------------------------------------------ */
+
 void runSingleInstanceMode(void) {
     int j;
     long int *currentSolution;
@@ -215,9 +207,7 @@ void runSingleInstanceMode(void) {
     free(currentSolution);
 }
 
-/* ------------------------------------------------------------ */
-/* All-instances mode                                           */
-/* ------------------------------------------------------------ */
+
 void runAllMode(void) {
     long int *currentSolution;
     DIR *dir;
@@ -281,9 +271,6 @@ void runAllMode(void) {
     printf("\nResults saved to iterative_improvement_results.csv and vnd_results.csv\n");
 }
 
-/* ------------------------------------------------------------ */
-/* Main                                                         */
-/* ------------------------------------------------------------ */
 int main(int argc, char **argv) {
     setbuf(stdout, NULL);
     setbuf(stderr, NULL);
