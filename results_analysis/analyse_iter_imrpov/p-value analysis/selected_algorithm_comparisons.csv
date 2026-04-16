@@ -1,4 +1,0 @@
-comparison_name,algorithm_1,algorithm_2,n_instances,mean_delta_1,mean_delta_2,mean_diff_delta_1_minus_2,abs_mean_diff,better_by_mean,t_statistic,p_value_ttest,significant_ttest,wilcoxon_statistic,p_value_wilcoxon,significant_wilcoxon
-best_vs_second_best,best-exchange-cw,best-insert-cw,78,16.428363230769232,16.640161038461535,-0.2117978076923077,0.2117978076923077,best-exchange-cw,-10.826017034488384,3.93978084720492e-17,True,89.0,4.845541796537652e-13,True
-initialization,best-exchange-cw,best-exchange-random,78,16.428363230769232,33.21370429487178,-16.785341064102564,16.785341064102564,best-exchange-cw,-42.603410157055045,2.7167916386613396e-55,True,0.0,1.682175044870657e-14,True
-pivoting_rule,best-exchange-cw,first-exchange-cw,78,16.428363230769232,17.2743697948718,-0.8460065641025643,0.8460065641025643,best-exchange-cw,-20.55628320803548,5.331876808236572e-33,True,0.0,1.682175044870657e-14,True
