@@ -261,7 +261,7 @@ void runAllMode(void) {
             continue;
         }
 
-        // runAllIterImprovementAlgo(currentSolution, bestKnown, entry->d_name);
+        runAllIterImprovementAlgo(currentSolution, bestKnown, entry->d_name);
         runAllVNDAlgo(currentSolution, bestKnown, entry->d_name);
 
         free(currentSolution);

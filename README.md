@@ -14,7 +14,7 @@ make clean
 
 Paremeters : 
 
-Option 1 : to run one specific combinaison of the algorithms  
+Option 1 : to run one specific combinaison of the algorithms 
 first : -i <instance file>
 second: --<Pivorting rule> (best, first)
 third: --<neighborhood> (transpose; exchange, insert)
@@ -24,7 +24,7 @@ Examples:
 ./lop -i <instance file> --first --transpose --cw
 ./lop -i <instance file> --best --exchange --random
 
-Option 2 : run all combinaisons over all files 
+Option 2 : run all combinaisons over all files  as well as VND 
 ./lop -i <instance file> -a  
 
 
