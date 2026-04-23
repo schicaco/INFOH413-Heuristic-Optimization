@@ -33,6 +33,6 @@ extern long int * generate_random_vector(long int dim );
 #endif
 
 
-extern long int Seed; /* seed for the random number generator */
+extern long int Seed; 
 
 #endif

@@ -263,9 +263,9 @@ void runAllMode(void) {
 
         runAllIterImprovementAlgo(currentSolution, bestKnown, entry->d_name);
         runAllVNDAlgo(currentSolution, bestKnown, entry->d_name);
-
+    
         free(currentSolution);
-    }
+    }  
 
     closedir(dir);
     printf("\nResults saved to iterative_improvement_results.csv and vnd_results.csv\n");

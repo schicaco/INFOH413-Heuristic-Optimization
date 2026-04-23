@@ -355,3 +355,69 @@ void VND(long int *s, int order) {
         }
     }
 }
+
+/* ========== STOCHASTIC LOCAL SEARCH ALGORITHMS ========== */
+
+static int randomImprovement(long int *s, Neighborhood neighborhood, long long int *currentCost) {
+    int i, j;
+    long long int delta;
+    long long int bestDelta = 0;
+
+switch (neighborhood) {
+
+            case TRANSPOSE:
+                i = rand01(&Seed) % (PSize - 1);
+                delta = deltaTranspose(s, i);
+                transposeMove(s, i);
+                *currentCost += delta;
+                return 1;
+
+            case EXCHANGE:
+                i = rand01(&Seed) % (PSize - 1);
+                j = i + 1 + rand01(&Seed) % (PSize - i - 1);
+                delta = deltaExchange(s, i, j);
+                exchangeMove(s, i, j);
+                *currentCost += delta;
+                return 1;
+
+            case INSERT:
+                i = rand01(&Seed) % PSize;
+                do {
+                    j = rand01(&Seed) % PSize;
+                } while (i == j);
+                delta = deltaInsert(s, i, j);
+                insertMove(s, i, j);
+                *currentCost += delta;
+                return 1;
+
+            default:
+                fatal("randomImprovement: invalid neighborhood.");
+
+        }
+    return 0;
+}
+
+/* Randomised Iterative Improvement */
+static int randoIterativeImprovement(long int *s, Neighborhood neighborhood, PivotingRule pivotingRule,
+                         InitialSolution initialSolution) {
+    double wp = 0.3; // probability of accepting a non-improving move
+    int step, maxSteps = 100000;   // stopping condition 
+    long long int currentCost = computeCost(s);
+
+    /* Initial solution */
+    if (initialSolution == CHENERY_WATANABE) {
+        chenery_and_watanabe(s);
+    } else {
+        createRandomSolution(s);
+    }
+
+    for (step = 0; step < maxSteps; step++) {
+        if (ran01(&Seed) < wp) {
+            return randomImprovement(s, neighborhood, currentCost);
+        } else {
+            return firstImprovement(s, neighborhood, currentCost);
+        }
+    }
+
+    return 0;
+}  
