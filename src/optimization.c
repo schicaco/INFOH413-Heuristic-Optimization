@@ -358,7 +358,87 @@ void VND(long int *s, int order) {
 
 /* ========== STOCHASTIC LOCAL SEARCH ALGORITHMS ========== */
 
+static int bestAvailableMove(long int *s,
+                             Neighborhood neighborhood,
+                             long long int *currentCost) {
+    int i, j;
+    int bestI = -1, bestJ = -1;
+    long long int delta;
+    long long int bestDelta = LLONG_MIN;
+
+    switch (neighborhood) {
+
+        case TRANSPOSE:
+            for (i = 0; i < PSize - 1; i++) {
+                delta = deltaTranspose(s, i);
+
+                if (delta > bestDelta) {
+                    bestDelta = delta;
+                    bestI = i;
+                }
+            }
+
+            if (bestI != -1) {
+                transposeMove(s, bestI);
+                *currentCost += bestDelta;
+                return 1;
+            }
+            break;
+
+
+        case EXCHANGE:
+            for (i = 0; i < PSize - 1; i++) {
+                for (j = i + 1; j < PSize; j++) {
+                    delta = deltaExchange(s, i, j);
+
+                    if (delta > bestDelta) {
+                        bestDelta = delta;
+                        bestI = i;
+                        bestJ = j;
+                    }
+                }
+            }
+
+            if (bestI != -1 && bestJ != -1) {
+                exchangeMove(s, bestI, bestJ);
+                *currentCost += bestDelta;
+                return 1;
+            }
+            break;
+
+
+        case INSERT:
+            for (i = 0; i < PSize; i++) {
+                for (j = 0; j < PSize; j++) {
+                    if (i == j) continue;
+
+                    delta = deltaInsert(s, i, j);
+
+                    if (delta > bestDelta) {
+                        bestDelta = delta;
+                        bestI = i;
+                        bestJ = j;
+                    }
+                }
+            }
+
+            if (bestI != -1 && bestJ != -1) {
+                insertMove(s, bestI, bestJ);
+                *currentCost += bestDelta;
+                return 1;
+            }
+            break;
+
+
+        default:
+            fatal("bestAvailableMove: invalid neighborhood.");
+    }
+
+    return 0;
+}
+
 static int randomImprovement(long int *s, Neighborhood neighborhood, long long int *currentCost) {
+    /* Choose a neighbour s' of s unirformly ar random */
     int i, j;
     long long int delta;
     long long int bestDelta = 0;
@@ -366,24 +446,26 @@ static int randomImprovement(long int *s, Neighborhood neighborhood, long long i
 switch (neighborhood) {
 
             case TRANSPOSE:
-                i = rand01(&Seed) % (PSize - 1);
+                i = (int)(rand01(&Seed) % (PSize - 1));
                 delta = deltaTranspose(s, i);
                 transposeMove(s, i);
                 *currentCost += delta;
                 return 1;
 
             case EXCHANGE:
-                i = rand01(&Seed) % (PSize - 1);
-                j = i + 1 + rand01(&Seed) % (PSize - i - 1);
+                // To ensure i < j, we first select i and then select j from the remaining elements
+                i = (int)(rand01(&Seed) % (PSize - 1));
+                j = i + 1 + (int)(rand01(&Seed) % (PSize - i - 1));
                 delta = deltaExchange(s, i, j);
                 exchangeMove(s, i, j);
                 *currentCost += delta;
                 return 1;
 
             case INSERT:
-                i = rand01(&Seed) % PSize;
+                // Select i and j independently, ensuring they are not the same
+                i = (int)(rand01(&Seed) % PSize);
                 do {
-                    j = rand01(&Seed) % PSize;
+                    j = (int)(rand01(&Seed) % PSize);
                 } while (i == j);
                 delta = deltaInsert(s, i, j);
                 insertMove(s, i, j);
@@ -392,30 +474,32 @@ switch (neighborhood) {
 
             default:
                 fatal("randomImprovement: invalid neighborhood.");
-
         }
     return 0;
 }
 
 /* Randomised Iterative Improvement */
-static int randoIterativeImprovement(long int *s, Neighborhood neighborhood, PivotingRule pivotingRule,
-                         InitialSolution initialSolution) {
-    double wp = 0.3; // probability of accepting a non-improving move
+int randomIterativeImprovement(long int *s, Neighborhood neighborhood, PivotingRule pivotingRule,
+                         InitialSolution initialSolution, double wp) {
+    // double wp = 0.3; // probability of accepting a non-improving move
     int step, maxSteps = 100000;   // stopping condition 
-    long long int currentCost = computeCost(s);
-
+    
     /* Initial solution */
     if (initialSolution == CHENERY_WATANABE) {
         chenery_and_watanabe(s);
     } else {
         createRandomSolution(s);
     }
+    long long int currentCost = computeCost(s);
 
     for (step = 0; step < maxSteps; step++) {
-        if (ran01(&Seed) < wp) {
-            return randomImprovement(s, neighborhood, currentCost);
+        if ( ran01(&Seed) < wp ) {
+            randomImprovement(s, neighborhood, &currentCost);
         } else {
-            return firstImprovement(s, neighborhood, currentCost);
+            if (!bestImprovement(s, neighborhood, &currentCost)) {
+                // if no improvement → take best possible move anyway
+                bestAvailableMove(s, neighborhood, &currentCost);
+            }   
         }
     }
 

@@ -12,6 +12,7 @@ void createRandomSolution(long int *s);
 void chenery_and_watanabe(long int *s);
 void VND(long int *s, int order);
 
+int randomIterativeImprovement(long int *s, Neighborhood neighborhood, PivotingRule pivotingRule, InitialSolution initialSolution, double wp);
 int iterativeImprovement(long int *s, Neighborhood neighborhood, PivotingRule pivotingRule, InitialSolution initialSolution);
 
 #endif

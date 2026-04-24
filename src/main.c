@@ -11,6 +11,7 @@
 
 char *FileName;
 int RunAllMode = 0;
+int RunRII = 0;
 
 PivotingRule PivotingRuleChoice;
 Neighborhood NeighborhoodChoice;
@@ -30,6 +31,7 @@ void readOpts(int argc, char **argv) {
         {"random",    no_argument, 0, 'r'},
         {"cw",        no_argument, 0, 'c'},
         {"all",       no_argument, 0, 'a'},
+        {"rii",       no_argument, 0, 'rii'},
         {0, 0, 0, 0}
     };
 
@@ -80,6 +82,10 @@ void readOpts(int argc, char **argv) {
 
             case 'c':
                 InitialSolutionChoice = CHENERY_WATANABE;
+                break;
+
+            case 'rii':
+                RunRII = 1;
                 break;
 
             default:
@@ -178,8 +184,8 @@ void runAllVNDAlgo(long int *s, long long int bestKnown, const char *instanceNam
     fclose(csv);
 }
 
-
 void runSingleInstanceMode(void) {
+    /* Run single instance mode using an iterative improvement */
     int j;
     long int *currentSolution;
 
@@ -267,8 +273,54 @@ void runAllMode(void) {
         free(currentSolution);
     }  
 
+
     closedir(dir);
     printf("\nResults saved to iterative_improvement_results.csv and vnd_results.csv\n");
+}
+
+void runAllRII(long int *s, long long int bestKnown, const char *instanceName) {
+    PivotingRule pivotingRule = BEST_IMPROVEMENT;
+    Neighborhood neighborhoods[] = {TRANSPOSE, EXCHANGE, INSERT};
+    InitialSolution initialSolutions[] = {RANDOM, CHENERY_WATANABE};
+    
+    const char *pivotingName = "best";
+    const char *neighborhoodNames[] = {"transpose", "exchange", "insert"};
+    const char *initialNames[] = {"random", "cw"};
+
+    double wp = ran01(&Seed); 
+
+    FILE *csv = fopen("rii_results.csv", "a");
+    if (!csv) {
+        csv = fopen("rii_results.csv", "w");
+        fprintf(csv, "instance,order,best_known,cost,delta_percent,time_seconds\n");
+    }
+
+    for (int n = 0; n < 3; n++) {
+        for (int i = 0; i < 2; i++) {
+            start_timers();
+
+            randomIterativeImprovement(s, neighborhoods[n], pivotingRule, initialSolutions[i], wp);
+
+            double computationTime = elapsed_time(VIRTUAL);
+            long long int finalCost = computeCost(s);
+            double delta = 100.0 * (bestKnown - finalCost) / bestKnown;
+
+            fprintf(csv, "%s,%s,%s,%s,%lld,%lld,%f,%f\n",
+                    instanceName,
+                    pivotingName,
+                    neighborhoodNames[n],
+                    initialNames[i],
+                    bestKnown,
+                    finalCost,
+                    delta,
+                    computationTime);
+
+            fflush(csv);
+        }
+    }
+    
+
+    fclose(csv);
 }
 
 int main(int argc, char **argv) {
