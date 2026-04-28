@@ -51,11 +51,15 @@ void readOpts(int argc, char **argv) {
                 }
                 strcpy(FileName, optarg);
                 break;
-
+                
             case 'a':
                 RunAllMode = 1;
                 break;
 
+            case 'rii':
+                RunRII = 1;
+                break;
+                
             case 'f':
                 PivotingRuleChoice = FIRST_IMPROVEMENT;
                 break;
@@ -84,9 +88,6 @@ void readOpts(int argc, char **argv) {
                 InitialSolutionChoice = CHENERY_WATANABE;
                 break;
 
-            case 'rii':
-                RunRII = 1;
-                break;
 
             default:
                 fprintf(stderr,
@@ -214,7 +215,8 @@ void runSingleInstanceMode(void) {
 }
 
 
-void runAllMode(void) {
+void runAllMode(char *directory) {
+    /* Run all instances of a directory over the algorithms VND and Iterative Improvement */
     long int *currentSolution;
     DIR *dir;
     struct dirent *entry;
@@ -238,7 +240,7 @@ void runAllMode(void) {
         fclose(csv);
     }
 
-    dir = opendir("instances");
+    dir = opendir(directory);
     if (!dir) {
         perror("opendir");
         fatal("Could not open instances directory.");
@@ -332,7 +334,7 @@ int main(int argc, char **argv) {
     if (argc < 2) {
         fprintf(stderr,
             "Usage:\n"
-            "  ./lop -all\n"
+            "  ./lop -a\n"
             "  ./lop -i <instance file> [--first|--best] [--transpose|--exchange|--insert] [--random|--cw]\n");
         return 1;
     }
@@ -340,7 +342,7 @@ int main(int argc, char **argv) {
     readOpts(argc, argv);
 
     if (RunAllMode) {
-        runAllMode();
+        runAllMode("instances");
     } else {
         runSingleInstanceMode();
     }
