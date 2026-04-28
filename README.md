@@ -25,8 +25,10 @@ Examples:
 ./lop -i <instance file> --best --exchange --random
 
 Option 2 : run all combinaisons over all files  as well as VND 
-./lop -i <instance file> -a  
+./lop -a  
 
+<!-- Option 3 : run the SLL RII over all files 
+./lop -rii  -->
 
 
 ### Best known solutions:

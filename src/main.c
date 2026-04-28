@@ -23,15 +23,15 @@ void readOpts(int argc, char **argv) {
     int option_index = 0;
 
     struct option long_options[] = {
-        {"first",     no_argument, 0, 'f'},
-        {"best",      no_argument, 0, 'b'},
-        {"transpose", no_argument, 0, 't'},
-        {"exchange",  no_argument, 0, 'e'},
-        {"insert",    no_argument, 0, 'n'},
-        {"random",    no_argument, 0, 'r'},
-        {"cw",        no_argument, 0, 'c'},
         {"all",       no_argument, 0, 'a'},
-        {"rii",       no_argument, 0, 'rii'},
+        {"rii",       no_argument, 0, '2'},
+        {"first",     no_argument, 0, '3'},
+        {"best",      no_argument, 0, '4'},
+        {"transpose", no_argument, 0, '5'},
+        {"exchange",  no_argument, 0, '6'},
+        {"insert",    no_argument, 0, '7'},
+        {"random",    no_argument, 0, '8'},
+        {"cw",        no_argument, 0, '9'},
         {0, 0, 0, 0}
     };
 
@@ -56,38 +56,37 @@ void readOpts(int argc, char **argv) {
                 RunAllMode = 1;
                 break;
 
-            case 'rii':
+            case '2':
                 RunRII = 1;
                 break;
                 
-            case 'f':
+            case '3':
                 PivotingRuleChoice = FIRST_IMPROVEMENT;
                 break;
 
-            case 'b':
+            case '4':
                 PivotingRuleChoice = BEST_IMPROVEMENT;
                 break;
 
-            case 't':
+            case '5':
                 NeighborhoodChoice = TRANSPOSE;
                 break;
 
-            case 'e':
+            case '6':
                 NeighborhoodChoice = EXCHANGE;
                 break;
 
-            case 'n':
+            case '7':
                 NeighborhoodChoice = INSERT;
                 break;
 
-            case 'r':
+            case '8':
                 InitialSolutionChoice = RANDOM;
                 break;
 
-            case 'c':
+            case '9':
                 InitialSolutionChoice = CHENERY_WATANABE;
                 break;
-
 
             default:
                 fprintf(stderr,
@@ -214,73 +213,7 @@ void runSingleInstanceMode(void) {
     free(currentSolution);
 }
 
-
-void runAllMode(char *directory) {
-    /* Run all instances of a directory over the algorithms VND and Iterative Improvement */
-    long int *currentSolution;
-    DIR *dir;
-    struct dirent *entry;
-    char filePath[512];
-
-    FILE *csv = fopen("iterative_improvement_results.csv", "r");
-    if (!csv) {
-        csv = fopen("iterative_improvement_results.csv", "w");
-        fprintf(csv, "instance,pivoting_rule,neighborhood,initial_solution,best_known,cost,delta_percent,time_seconds\n");
-        fclose(csv);
-    } else {
-        fclose(csv);
-    }
-
-    csv = fopen("vnd_results.csv", "r");
-    if (!csv) {
-        csv = fopen("vnd_results.csv", "w");
-        fprintf(csv, "instance,order,best_known,cost,delta_percent,time_seconds\n");
-        fclose(csv);
-    } else {
-        fclose(csv);
-    }
-
-    dir = opendir(directory);
-    if (!dir) {
-        perror("opendir");
-        fatal("Could not open instances directory.");
-    }
-
-    while ((entry = readdir(dir)) != NULL) {
-        if (entry->d_type == DT_DIR || entry->d_name[0] == '.') {
-            continue;
-        }
-
-        snprintf(filePath, sizeof(filePath), "instances/%s", entry->d_name);
-
-        printf("\n=== Processing instance: %s ===\n", entry->d_name);
-
-        CostMat = readInstance(filePath);
-
-        currentSolution = (long int *)malloc(PSize * sizeof(long int));
-        if (!currentSolution) {
-            fatal("runAllMode: malloc failed.");
-        }
-
-        long long int bestKnown = readBestKnownValue(entry->d_name);
-        if (bestKnown < 0) {
-            fprintf(stderr, "Warning: Best known value not found for %s\n", entry->d_name);
-            free(currentSolution);
-            continue;
-        }
-
-        runAllIterImprovementAlgo(currentSolution, bestKnown, entry->d_name);
-        runAllVNDAlgo(currentSolution, bestKnown, entry->d_name);
-    
-        free(currentSolution);
-    }  
-
-
-    closedir(dir);
-    printf("\nResults saved to iterative_improvement_results.csv and vnd_results.csv\n");
-}
-
-void runAllRII(long int *s, long long int bestKnown, const char *instanceName) {
+void runAllRII(long int *s, long long int bestKnown, const char *instanceName, double wp) {
     PivotingRule pivotingRule = BEST_IMPROVEMENT;
     Neighborhood neighborhoods[] = {TRANSPOSE, EXCHANGE, INSERT};
     InitialSolution initialSolutions[] = {RANDOM, CHENERY_WATANABE};
@@ -289,12 +222,12 @@ void runAllRII(long int *s, long long int bestKnown, const char *instanceName) {
     const char *neighborhoodNames[] = {"transpose", "exchange", "insert"};
     const char *initialNames[] = {"random", "cw"};
 
-    double wp = ran01(&Seed); 
+    printf("Randomly chosen wp for RII: %f\n", wp); 
 
     FILE *csv = fopen("rii_results.csv", "a");
     if (!csv) {
-        csv = fopen("rii_results.csv", "w");
-        fprintf(csv, "instance,order,best_known,cost,delta_percent,time_seconds\n");
+        fprintf(stderr, "Error opening rii_results.csv\n");
+        return;
     }
 
     for (int n = 0; n < 3; n++) {
@@ -321,9 +254,88 @@ void runAllRII(long int *s, long long int bestKnown, const char *instanceName) {
         }
     }
     
-
     fclose(csv);
 }
+
+
+void runAllMode(char *directory) {
+    /* Run all instances of a directory over the algorithms VND and Iterative Improvement */
+    long int *currentSolution;
+    DIR *dir;
+    struct dirent *entry;
+    char filePath[512];
+    
+    double wp = 0.3;
+    printf("chosen wp for RII: %f\n", wp);
+
+    // FILE *csv = fopen("iterative_improvement_results.csv", "r");
+    // if (!csv) {
+    //     csv = fopen("iterative_improvement_results.csv", "w");
+    //     fprintf(csv, "instance,pivoting_rule,neighborhood,initial_solution,best_known,cost,delta_percent,time_seconds\n");
+    //     fclose(csv);
+    // } else {
+    //     fclose(csv);
+    // }
+
+    // csv = fopen("vnd_results.csv", "r");
+    // if (!csv) {
+    //     csv = fopen("vnd_results.csv", "w");
+    //     fprintf(csv, "instance,order,best_known,cost,delta_percent,time_seconds\n");
+    //     fclose(csv);
+    // } else {
+    //     fclose(csv);
+    // }
+
+    FILE *csv = fopen("rii_results.csv", "r");
+    if (!csv) {
+        csv = fopen("rii_results.csv", "w");
+        fprintf(csv, "instance,pivoting_rule,neighborhood,initial_solution,best_known,cost,delta_percent,time_seconds\n");
+        fclose(csv);
+    } else {
+        fclose(csv);
+    }
+
+    dir = opendir(directory);
+    if (!dir) {
+        perror("opendir");
+        fatal("Could not open instances directory.");
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type == DT_DIR || entry->d_name[0] == '.') {
+            continue;
+        }
+
+        snprintf(filePath, sizeof(filePath), "%s/%s", directory, entry->d_name);
+
+        printf("\n=== Processing instance: %s ===\n", entry->d_name);
+
+        CostMat = readInstance(filePath);
+
+        currentSolution = (long int *)malloc(PSize * sizeof(long int));
+        if (!currentSolution) {
+            fatal("runAllMode: malloc failed.");
+        }
+
+        long long int bestKnown = readBestKnownValue(entry->d_name);
+        if (bestKnown < 0) {
+            fprintf(stderr, "Warning: Best known value not found for %s\n", entry->d_name);
+            free(currentSolution);
+            continue;
+        }
+
+        // runAllIterImprovementAlgo(currentSolution, bestKnown, entry->d_name);
+        // runAllVNDAlgo(currentSolution, bestKnown, entry->d_name);
+        runAllRII(currentSolution, bestKnown, entry->d_name, wp);
+    
+        free(currentSolution);
+    }  
+
+
+    closedir(dir);
+    printf("\nResults saved to iterative_improvement_results.csv and vnd_results.csv\n");
+}
+
 
 int main(int argc, char **argv) {
     setbuf(stdout, NULL);
@@ -334,6 +346,7 @@ int main(int argc, char **argv) {
     if (argc < 2) {
         fprintf(stderr,
             "Usage:\n"
+            "  ./lop -rii\n"
             "  ./lop -a\n"
             "  ./lop -i <instance file> [--first|--best] [--transpose|--exchange|--insert] [--random|--cw]\n");
         return 1;
@@ -342,8 +355,12 @@ int main(int argc, char **argv) {
     readOpts(argc, argv);
 
     if (RunAllMode) {
-        runAllMode("instances");
-    } else {
+        runAllMode("instances_150");
+    } 
+    // else if (RunRII){
+    //     runAllRII(NULL, 0, "instances_150"); // Placeholder, should read instance and best known value
+    // } 
+    else {
         runSingleInstanceMode();
     }
 

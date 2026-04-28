@@ -441,40 +441,39 @@ static int randomImprovement(long int *s, Neighborhood neighborhood, long long i
     /* Choose a neighbour s' of s unirformly ar random */
     int i, j;
     long long int delta;
-    long long int bestDelta = 0;
 
-switch (neighborhood) {
+    switch (neighborhood) {
 
-            case TRANSPOSE:
-                i = (int)(rand01(&Seed) % (PSize - 1));
-                delta = deltaTranspose(s, i);
-                transposeMove(s, i);
-                *currentCost += delta;
-                return 1;
+        case TRANSPOSE:
+            i = randInt(0, PSize - 2); // must leave space for another valid index after it
+            delta = deltaTranspose(s, i);
+            transposeMove(s, i);
+            *currentCost += delta;
+            return 1;
 
-            case EXCHANGE:
-                // To ensure i < j, we first select i and then select j from the remaining elements
-                i = (int)(rand01(&Seed) % (PSize - 1));
-                j = i + 1 + (int)(rand01(&Seed) % (PSize - i - 1));
-                delta = deltaExchange(s, i, j);
-                exchangeMove(s, i, j);
-                *currentCost += delta;
-                return 1;
+        case EXCHANGE:
+            // To ensure i < j, we first select i and then select j from the remaining elements
+            i = randInt(0, PSize - 2); 
+            j = randInt(i + 1, PSize - 1);
+            delta = deltaExchange(s, i, j);
+            exchangeMove(s, i, j);
+            *currentCost += delta;
+            return 1;
 
-            case INSERT:
-                // Select i and j independently, ensuring they are not the same
-                i = (int)(rand01(&Seed) % PSize);
-                do {
-                    j = (int)(rand01(&Seed) % PSize);
-                } while (i == j);
-                delta = deltaInsert(s, i, j);
-                insertMove(s, i, j);
-                *currentCost += delta;
-                return 1;
+        case INSERT:
+            // Select i and j independently, ensuring they are not the same
+            i = randInt(0, PSize - 1);
+            do {
+                j = randInt(0, PSize - 1);
+            } while (i == j);
+            delta = deltaInsert(s, i, j);
+            insertMove(s, i, j);
+            *currentCost += delta;
+            return 1;
 
-            default:
-                fatal("randomImprovement: invalid neighborhood.");
-        }
+        default:
+            fatal("randomImprovement: invalid neighborhood.");
+    }
     return 0;
 }
 
