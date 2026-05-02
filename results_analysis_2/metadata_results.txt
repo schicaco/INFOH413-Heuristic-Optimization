@@ -1,0 +1,10 @@
+rii_results: 
+-maxSteps = 100 000
+
+vns_results.csv
+- maxSteps 100 000
+- maxNoImprovement = 1000 
+
+vns_results_1.csv
+- maxSteps 10000
+- maxNoImprovement = 100 

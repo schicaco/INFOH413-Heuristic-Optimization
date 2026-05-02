@@ -290,6 +290,7 @@ static int bestImprovement(long int *s, Neighborhood neighborhood, long long int
     return 0;
 }
 
+/* ======== LOCAL SEARCH ALGORITHMS ======== */
 
 /* ITERATIVE IMPROVEMENT */
 
@@ -357,6 +358,8 @@ void VND(long int *s, int order) {
 }
 
 /* ========== STOCHASTIC LOCAL SEARCH ALGORITHMS ========== */
+
+/* Random Iterative Improvement */
 
 static int bestAvailableMove(long int *s,
                              Neighborhood neighborhood,
@@ -478,10 +481,12 @@ static int randomImprovement(long int *s, Neighborhood neighborhood, long long i
 }
 
 /* Randomised Iterative Improvement */
+
 int randomIterativeImprovement(long int *s, Neighborhood neighborhood, PivotingRule pivotingRule,
                          InitialSolution initialSolution, double wp) {
     // double wp = 0.3; // probability of accepting a non-improving move
-    int step, maxSteps = 100000;   // stopping condition 
+    int step;
+    int maxSteps = 100000;   // stopping condition 
     
     /* Initial solution */
     if (initialSolution == CHENERY_WATANABE) {
@@ -504,3 +509,95 @@ int randomIterativeImprovement(long int *s, Neighborhood neighborhood, PivotingR
 
     return 0;
 }  
+
+
+/* Variable Neighborhood Search */
+
+static void localSearchFromCurrent(long int *s,Neighborhood neighborhood,PivotingRule pivotingRule,long long int *currentCost) {
+    int improved;
+
+    do {
+        if (pivotingRule == FIRST_IMPROVEMENT) {
+            improved = firstImprovement(s, neighborhood, currentCost);
+        } else if (pivotingRule == BEST_IMPROVEMENT) {
+            improved = bestImprovement(s, neighborhood, currentCost);
+        } else {
+            fatal("localSearchFromCurrent: invalid pivoting rule.");
+            improved = 0;
+        }
+    } while (improved);
+}
+
+static void copySolution(long int *destination, const long int *source) {
+    int i;
+
+    for (i = 0; i < PSize; i++) {
+        destination[i] = source[i];
+    }
+}
+
+void VNS(long int *s, int order) {
+    int iter = 0;
+    int noImprovement = 0;
+    int k;
+    long long int bestCost;
+    long long int candidateCost;
+    long int *candidate;
+    int maxSteps = 100000; 
+    int maxNoImprovement = 1000;
+
+    Neighborhood neighborhoods[3]= {TRANSPOSE, EXCHANGE, INSERT}; // default order;
+
+    if (order == 1) {
+        neighborhoods[0] = TRANSPOSE;
+        neighborhoods[1] = EXCHANGE;
+        neighborhoods[2] = INSERT;
+    } else if (order == 2) {
+        neighborhoods[0] = TRANSPOSE;
+        neighborhoods[1] = INSERT;
+        neighborhoods[2] = EXCHANGE;
+    } else {
+        fatal("VNS: invalid order. Use 1 or 2.");
+    }
+
+
+    candidate = (long int *)malloc(PSize * sizeof(long int));
+    if (!candidate) {
+        fatal("VNS: malloc failed for candidate.");
+    }
+
+    /* Initial solution: good deterministic construction, then intensify. */
+    chenery_and_watanabe(s);
+    bestCost = computeCost(s);
+
+    localSearchFromCurrent(s, neighborhoods[2], BEST_IMPROVEMENT, &bestCost);
+
+    while (iter < maxSteps && noImprovement < maxNoImprovement) {
+        k = 0;
+
+        while (k < 3) {
+            copySolution(candidate, s);
+            candidateCost = bestCost;
+
+            /* Shaking: move to a random neighbour in Nk(s). */
+            randomImprovement(candidate, neighborhoods[k], &candidateCost);
+
+            /* Intensification: local search from the shaken solution. */
+            localSearchFromCurrent(candidate, neighborhoods[2], BEST_IMPROVEMENT, &candidateCost);
+
+            if (candidateCost > bestCost) {
+                copySolution(s, candidate);
+                bestCost = candidateCost;
+                k = 0;
+                noImprovement = 0;
+            } else {
+                k++;
+            }
+        }
+
+        iter++;
+        noImprovement++;
+    }
+
+    free(candidate);
+}

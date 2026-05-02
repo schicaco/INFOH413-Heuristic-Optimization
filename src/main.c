@@ -105,6 +105,35 @@ void readOpts(int argc, char **argv) {
 }
 
 
+void runSingleInstanceMode(void) {
+    /* Run single instance mode using an iterative improvement */
+    int j;
+    long int *currentSolution;
+
+    CostMat = readInstance(FileName);
+    printf("Data have been read from instance file. Size of instance = %ld.\n\n", PSize);
+
+    currentSolution = (long int *)malloc(PSize * sizeof(long int));
+    if (!currentSolution) {
+        fatal("runSingleInstanceMode: malloc failed.");
+    }
+
+    start_timers();
+
+    iterativeImprovement(currentSolution, NeighborhoodChoice, PivotingRuleChoice, InitialSolutionChoice);
+
+    printf("Solution after iterative improvement:\n");
+    for (j = 0; j < PSize; j++) {
+        printf(" %ld", currentSolution[j]);
+    }
+    printf("\n");
+
+    printf("Final cost: %lld\n", computeCost(currentSolution));
+    printf("Time elapsed: %g\n\n", elapsed_time(VIRTUAL));
+
+    free(currentSolution);
+}
+
 
 void runAllIterImprovementAlgo(long int *s, long long int bestKnown, const char *instanceName) {
     PivotingRule pivotingRules[] = {FIRST_IMPROVEMENT, BEST_IMPROVEMENT};
@@ -184,34 +213,7 @@ void runAllVNDAlgo(long int *s, long long int bestKnown, const char *instanceNam
     fclose(csv);
 }
 
-void runSingleInstanceMode(void) {
-    /* Run single instance mode using an iterative improvement */
-    int j;
-    long int *currentSolution;
 
-    CostMat = readInstance(FileName);
-    printf("Data have been read from instance file. Size of instance = %ld.\n\n", PSize);
-
-    currentSolution = (long int *)malloc(PSize * sizeof(long int));
-    if (!currentSolution) {
-        fatal("runSingleInstanceMode: malloc failed.");
-    }
-
-    start_timers();
-
-    iterativeImprovement(currentSolution, NeighborhoodChoice, PivotingRuleChoice, InitialSolutionChoice);
-
-    printf("Solution after iterative improvement:\n");
-    for (j = 0; j < PSize; j++) {
-        printf(" %ld", currentSolution[j]);
-    }
-    printf("\n");
-
-    printf("Final cost: %lld\n", computeCost(currentSolution));
-    printf("Time elapsed: %g\n\n", elapsed_time(VIRTUAL));
-
-    free(currentSolution);
-}
 
 void runAllRII(long int *s, long long int bestKnown, const char *instanceName, double wp) {
     PivotingRule pivotingRule = BEST_IMPROVEMENT;
@@ -258,6 +260,41 @@ void runAllRII(long int *s, long long int bestKnown, const char *instanceName, d
 }
 
 
+
+void runAllVNSAlgo(long int *s, long long int bestKnown, const char *instanceName) {
+    int orders[] = {1, 2};
+    const char *orderNames[] = {"order1", "order2"};
+
+    FILE *csv = fopen("vns_results.csv", "a");
+    if (!csv) {
+        fprintf(stderr, "Error opening vns_results.csv\n");
+        return;
+    }
+
+    for (int i = 0; i < 2; i++) {
+        start_timers();
+
+        VNS(s, orders[i]);
+
+        double computationTime = elapsed_time(VIRTUAL);
+        long long int finalCost = computeCost(s);
+        double delta = 100.0 * (bestKnown - finalCost) / bestKnown;
+
+        fprintf(csv, "%s,%s,%lld,%lld,%f,%f\n",
+                instanceName,
+                orderNames[i],
+                bestKnown,
+                finalCost,
+                delta,
+                computationTime);
+
+        fflush(csv);
+    }
+
+    fclose(csv);
+}
+
+
 void runAllMode(char *directory) {
     /* Run all instances of a directory over the algorithms VND and Iterative Improvement */
     long int *currentSolution;
@@ -265,7 +302,7 @@ void runAllMode(char *directory) {
     struct dirent *entry;
     char filePath[512];
     
-    double wp = 0.3;
+    double wp = 0.5;
     printf("chosen wp for RII: %f\n", wp);
 
     // FILE *csv = fopen("iterative_improvement_results.csv", "r");
@@ -290,6 +327,15 @@ void runAllMode(char *directory) {
     if (!csv) {
         csv = fopen("rii_results.csv", "w");
         fprintf(csv, "instance,pivoting_rule,neighborhood,initial_solution,best_known,cost,delta_percent,time_seconds\n");
+        fclose(csv);
+    } else {
+        fclose(csv);
+    }
+
+    csv = fopen("vns_results.csv", "r");
+    if (!csv) {
+        csv = fopen("vns_results.csv", "w");
+        fprintf(csv, "instance,order,best_known,cost,delta_percent,time_seconds\n");
         fclose(csv);
     } else {
         fclose(csv);
@@ -326,8 +372,8 @@ void runAllMode(char *directory) {
 
         // runAllIterImprovementAlgo(currentSolution, bestKnown, entry->d_name);
         // runAllVNDAlgo(currentSolution, bestKnown, entry->d_name);
-        runAllRII(currentSolution, bestKnown, entry->d_name, wp);
-    
+        // runAllRII(currentSolution, bestKnown, entry->d_name, wp);
+        runAllVNSAlgo(currentSolution, bestKnown, entry->d_name);
         free(currentSolution);
     }  
 
@@ -365,4 +411,4 @@ int main(int argc, char **argv) {
     }
 
     return 0;
-}
+} 

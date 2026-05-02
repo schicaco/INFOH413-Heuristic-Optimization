@@ -1,0 +1,6 @@
+criterion,pivoting_rule,neighborhood,initial_solution,value
+Best average deviation,first,insert,cw,2.0164418974358975
+Second best average deviation,first,insert,random,2.06804141025641
+Fastest total time,best,transpose,random,0.00307
+Fastest CW-based algorithm,best,transpose,cw,0.219092
+Slowest algorithm,first,exchange,random,217.268761
