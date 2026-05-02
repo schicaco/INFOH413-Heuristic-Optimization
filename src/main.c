@@ -215,16 +215,14 @@ void runAllVNDAlgo(long int *s, long long int bestKnown, const char *instanceNam
 
 
 
-void runAllRII(long int *s, long long int bestKnown, const char *instanceName, double wp) {
+void runAllRII(long int *s, long long int bestKnown, const char *instanceName, double wp, double terminationTime) {
     PivotingRule pivotingRule = BEST_IMPROVEMENT;
-    Neighborhood neighborhoods[] = {TRANSPOSE, EXCHANGE, INSERT};
-    InitialSolution initialSolutions[] = {RANDOM, CHENERY_WATANABE};
+    Neighborhood neighborhood = INSERT;
+    InitialSolution initialSolution = CHENERY_WATANABE;
     
     const char *pivotingName = "best";
-    const char *neighborhoodNames[] = {"transpose", "exchange", "insert"};
-    const char *initialNames[] = {"random", "cw"};
-
-    printf("Randomly chosen wp for RII: %f\n", wp); 
+    const char *neighborhoodName = "insert";
+    const char *initialName = "cw";
 
     FILE *csv = fopen("rii_results.csv", "a");
     if (!csv) {
@@ -232,38 +230,35 @@ void runAllRII(long int *s, long long int bestKnown, const char *instanceName, d
         return;
     }
 
-    for (int n = 0; n < 3; n++) {
-        for (int i = 0; i < 2; i++) {
-            start_timers();
+    start_timers();
 
-            randomIterativeImprovement(s, neighborhoods[n], pivotingRule, initialSolutions[i], wp);
+    randomIterativeImprovement(s, neighborhood, pivotingRule, initialSolution, wp, terminationTime);
 
-            double computationTime = elapsed_time(VIRTUAL);
-            long long int finalCost = computeCost(s);
-            double delta = 100.0 * (bestKnown - finalCost) / bestKnown;
+    double computationTime = elapsed_time(VIRTUAL);
+    long long int finalCost = computeCost(s);
+    double delta = 100.0 * (bestKnown - finalCost) / bestKnown;
 
-            fprintf(csv, "%s,%s,%s,%s,%lld,%lld,%f,%f\n",
-                    instanceName,
-                    pivotingName,
-                    neighborhoodNames[n],
-                    initialNames[i],
-                    bestKnown,
-                    finalCost,
-                    delta,
-                    computationTime);
+    fprintf(csv, "%s,%s,%s,%s,%lld,%lld,%f,%f\n",
+            instanceName,
+            pivotingName,
+            neighborhoodName,
+            initialName,
+            bestKnown,
+            finalCost,
+            delta,
+            computationTime);
 
-            fflush(csv);
-        }
-    }
+    fflush(csv);
+
     
     fclose(csv);
 }
 
 
 
-void runAllVNSAlgo(long int *s, long long int bestKnown, const char *instanceName) {
-    int orders[] = {1, 2};
-    const char *orderNames[] = {"order1", "order2"};
+void runAllVNSAlgo(long int *s, long long int bestKnown, const char *instanceName, double terminationTime) {
+    int order =  2;
+    const char *orderName = "order2";
 
     FILE *csv = fopen("vns_results.csv", "a");
     if (!csv) {
@@ -271,25 +266,24 @@ void runAllVNSAlgo(long int *s, long long int bestKnown, const char *instanceNam
         return;
     }
 
-    for (int i = 0; i < 2; i++) {
-        start_timers();
+    start_timers();
 
-        VNS(s, orders[i]);
+    VNS(s, order, terminationTime);
 
-        double computationTime = elapsed_time(VIRTUAL);
-        long long int finalCost = computeCost(s);
-        double delta = 100.0 * (bestKnown - finalCost) / bestKnown;
+    double computationTime = elapsed_time(VIRTUAL);
+    long long int finalCost = computeCost(s);
+    double delta = 100.0 * (bestKnown - finalCost) / bestKnown;
 
-        fprintf(csv, "%s,%s,%lld,%lld,%f,%f\n",
-                instanceName,
-                orderNames[i],
-                bestKnown,
-                finalCost,
-                delta,
-                computationTime);
+    fprintf(csv, "%s,%s,%lld,%lld,%f,%f\n",
+            instanceName,
+            orderName,
+            bestKnown,
+            finalCost,
+            delta,
+            computationTime);
 
-        fflush(csv);
-    }
+    fflush(csv);
+
 
     fclose(csv);
 }
@@ -301,8 +295,13 @@ void runAllMode(char *directory) {
     DIR *dir;
     struct dirent *entry;
     char filePath[512];
+
+    double averageVNDTime = 0.16120801282051284;
+    double terminationTime = averageVNDTime * 500;
     
-    double wp = 0.5;
+    printf("SLS termination time = 500 * average VND time = %.6f seconds\n", terminationTime);
+    
+    double wp = 0.3;
     printf("chosen wp for RII: %f\n", wp);
 
     // FILE *csv = fopen("iterative_improvement_results.csv", "r");
@@ -372,14 +371,89 @@ void runAllMode(char *directory) {
 
         // runAllIterImprovementAlgo(currentSolution, bestKnown, entry->d_name);
         // runAllVNDAlgo(currentSolution, bestKnown, entry->d_name);
-        // runAllRII(currentSolution, bestKnown, entry->d_name, wp);
-        runAllVNSAlgo(currentSolution, bestKnown, entry->d_name);
+        runAllRII(currentSolution, bestKnown, entry->d_name, wp, terminationTime);
+        runAllVNSAlgo(currentSolution, bestKnown, entry->d_name, terminationTime);
         free(currentSolution);
     }  
 
 
     closedir(dir);
     printf("\nResults saved to iterative_improvement_results.csv and vnd_results.csv\n");
+}
+
+
+void runQRTDExperiment(const char *instanceName,const char *filePath,long long int bestKnown, char *outputFile) {
+    int run;
+    double thresholds[] = {0.1, 0.25, 0.5};
+    int nThresholds = 3;
+
+    double averageVNDTime = 0.16120801282051284;
+    double terminationTime = averageVNDTime * 500;
+
+    double cutoffTime = 10.0 * terminationTime;
+
+    FILE *csv = fopen(outputFile, "r");
+    if (!csv) {
+        csv = fopen(outputFile, "w");
+        fprintf(csv, "instance,algorithm,threshold_percent,run_number,hit_time_seconds,cutoff_time_seconds\n");
+        fclose(csv);
+    } else {
+        fclose(csv);
+    }
+
+    csv = fopen(outputFile, "a");
+    if (!csv) {
+        fprintf(stderr, "Error opening %s\n", outputFile);
+        return;
+    }
+
+
+    CostMat = readInstance(filePath);
+
+    for (int t = 0; t < nThresholds; t++) {
+        double threshold = thresholds[t];
+
+        for (run = 0; run < 25; run++) {
+            long int *s = malloc(PSize * sizeof(long int));
+            if (!s) fatal("malloc failed in QRTD");
+
+            Seed = 123 + run;
+
+            start_timers();
+
+            double hitTime = randomIterativeImprovement_QRTD(s,INSERT,CHENERY_WATANABE,0.3,bestKnown,threshold,cutoffTime);
+
+            fprintf(csv, "%s,RII_insert_cw,%.2f,%d,%f,%f\n",
+                    instanceName, 
+                    threshold,
+                    run, 
+                    hitTime, 
+                    cutoffTime);
+
+            free(s);
+        }
+
+        for (run = 0; run < 25; run++) {
+            long int *s = malloc(PSize * sizeof(long int));
+            if (!s) fatal("malloc failed in QRTD");
+
+            Seed = 123 + run;
+
+            start_timers();
+
+            double hitTime = VNS_QRTD(s,2,bestKnown,threshold,cutoffTime);
+
+            fprintf(csv, "%s,VNS_order2,%.2f,%d,%f,%f\n",
+                    instanceName, 
+                    threshold,
+                    run, 
+                    hitTime, 
+                    cutoffTime);
+            free(s);
+        }
+    }
+
+    fclose(csv);
 }
 
 
@@ -401,7 +475,10 @@ int main(int argc, char **argv) {
     readOpts(argc, argv);
 
     if (RunAllMode) {
-        runAllMode("instances_150");
+        // runAllMode("instances_150");
+
+        runQRTDExperiment("N-stabu2_150", "instances_150/N-stabu2_150", 4327538, "qrt_results_stabu2.csv");
+        runQRTDExperiment("N-t70d11xn_150", "instances_150/N-t70d11xn_150", 15207063, "qrt_results_t70d11xn.csv");
     } 
     // else if (RunRII){
     //     runAllRII(NULL, 0, "instances_150"); // Placeholder, should read instance and best known value

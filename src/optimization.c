@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include "timer.h"
 
 #include "optimization.h"
 #include "instance.h"
@@ -483,10 +484,10 @@ static int randomImprovement(long int *s, Neighborhood neighborhood, long long i
 /* Randomised Iterative Improvement */
 
 int randomIterativeImprovement(long int *s, Neighborhood neighborhood, PivotingRule pivotingRule,
-                         InitialSolution initialSolution, double wp) {
+                         InitialSolution initialSolution, double wp, double terminationTime) {
     // double wp = 0.3; // probability of accepting a non-improving move
-    int step;
-    int maxSteps = 100000;   // stopping condition 
+
+    double startTime = elapsed_time(VIRTUAL);
     
     /* Initial solution */
     if (initialSolution == CHENERY_WATANABE) {
@@ -496,7 +497,7 @@ int randomIterativeImprovement(long int *s, Neighborhood neighborhood, PivotingR
     }
     long long int currentCost = computeCost(s);
 
-    for (step = 0; step < maxSteps; step++) {
+    while (elapsed_time(VIRTUAL) - startTime < terminationTime) {
         if ( ran01(&Seed) < wp ) {
             randomImprovement(s, neighborhood, &currentCost);
         } else {
@@ -536,18 +537,19 @@ static void copySolution(long int *destination, const long int *source) {
     }
 }
 
-void VNS(long int *s, int order) {
+void VNS(long int *s, int order, double terminationTime) {
     int iter = 0;
     int noImprovement = 0;
     int k;
     long long int bestCost;
     long long int candidateCost;
     long int *candidate;
-    int maxSteps = 100000; 
-    int maxNoImprovement = 1000;
 
+    double startTime = elapsed_time(VIRTUAL);
+    
+    
     Neighborhood neighborhoods[3]= {TRANSPOSE, EXCHANGE, INSERT}; // default order;
-
+    
     if (order == 1) {
         neighborhoods[0] = TRANSPOSE;
         neighborhoods[1] = EXCHANGE;
@@ -559,22 +561,22 @@ void VNS(long int *s, int order) {
     } else {
         fatal("VNS: invalid order. Use 1 or 2.");
     }
-
-
+    
+    
     candidate = (long int *)malloc(PSize * sizeof(long int));
     if (!candidate) {
         fatal("VNS: malloc failed for candidate.");
     }
-
+    
     /* Initial solution: good deterministic construction, then intensify. */
     chenery_and_watanabe(s);
     bestCost = computeCost(s);
-
+    
     localSearchFromCurrent(s, neighborhoods[2], BEST_IMPROVEMENT, &bestCost);
-
-    while (iter < maxSteps && noImprovement < maxNoImprovement) {
+    
+    while (elapsed_time(VIRTUAL) - startTime < terminationTime) {
         k = 0;
-
+        
         while (k < 3) {
             copySolution(candidate, s);
             candidateCost = bestCost;
@@ -600,4 +602,126 @@ void VNS(long int *s, int order) {
     }
 
     free(candidate);
+}
+
+
+/* =====================================  QRTD =================================== */
+
+int reachedTarget(long long int currentCost, long long int bestKnown, double thresholdPercent) {
+    double target = bestKnown * (1.0 - thresholdPercent / 100.0);
+    return currentCost >= target;
+}
+
+double randomIterativeImprovement_QRTD(
+    long int *s,
+    Neighborhood neighborhood,
+    InitialSolution initialSolution,
+    double wp,
+    long long int bestKnown,
+    double thresholdPercent,
+    double cutoffTime
+) {
+    long long int currentCost;
+    double hitTime = -1.0;
+
+    if (initialSolution == CHENERY_WATANABE) {
+        chenery_and_watanabe(s);
+    } else {
+        createRandomSolution(s);
+    }
+
+    currentCost = computeCost(s);
+
+    if (reachedTarget(currentCost, bestKnown, thresholdPercent)) {
+        return elapsed_time(VIRTUAL);
+    }
+
+    while (elapsed_time(VIRTUAL) < cutoffTime) {
+
+        if (ran01(&Seed) < wp) {
+            randomImprovement(s, neighborhood, &currentCost);
+        } else {
+            if (!bestImprovement(s, neighborhood, &currentCost)) {
+                bestAvailableMove(s, neighborhood, &currentCost);
+            }
+        }
+
+        if (reachedTarget(currentCost, bestKnown, thresholdPercent)) {
+            hitTime = elapsed_time(VIRTUAL);
+            break;
+        }
+    }
+
+    return hitTime;
+}
+
+
+double VNS_QRTD(
+    long int *s,
+    int order,
+    long long int bestKnown,
+    double thresholdPercent,
+    double cutoffTime
+) {
+    int k;
+    long long int bestCost;
+    long long int candidateCost;
+    long int *candidate;
+    double hitTime = -1.0;
+
+    Neighborhood neighborhoods[3];
+
+    if (order == 1) {
+        neighborhoods[0] = TRANSPOSE;
+        neighborhoods[1] = EXCHANGE;
+        neighborhoods[2] = INSERT;
+    } else {
+        neighborhoods[0] = TRANSPOSE;
+        neighborhoods[1] = INSERT;
+        neighborhoods[2] = EXCHANGE;
+    }
+
+    candidate = malloc(PSize * sizeof(long int));
+    if (!candidate) {
+        fatal("VNS_QRTD: malloc failed.");
+    }
+
+    chenery_and_watanabe(s);
+    bestCost = computeCost(s);
+
+    localSearchFromCurrent(s, neighborhoods[0], FIRST_IMPROVEMENT, &bestCost);
+
+    if (reachedTarget(bestCost, bestKnown, thresholdPercent)) {
+        free(candidate);
+        return elapsed_time(VIRTUAL);
+    }
+
+    while (elapsed_time(VIRTUAL) < cutoffTime) {
+        k = 0;
+
+        while (k < 3 && elapsed_time(VIRTUAL) < cutoffTime) {
+            copySolution(candidate, s);
+            candidateCost = bestCost;
+
+            randomImprovement(candidate, neighborhoods[k], &candidateCost);
+            localSearchFromCurrent(candidate, neighborhoods[0], FIRST_IMPROVEMENT, &candidateCost);
+
+            if (candidateCost > bestCost) {
+                copySolution(s, candidate);
+                bestCost = candidateCost;
+                k = 0;
+            } else {
+                k++;
+            }
+
+            if (reachedTarget(bestCost, bestKnown, thresholdPercent)) {
+                hitTime = elapsed_time(VIRTUAL);
+                free(candidate);
+                return hitTime;
+            }
+        }
+    }
+
+    free(candidate);
+    return hitTime;
 }

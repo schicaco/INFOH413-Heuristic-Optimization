@@ -10,10 +10,29 @@ typedef enum {RANDOM, CHENERY_WATANABE} InitialSolution;
 long long int computeCost ( long int *lo );
 void createRandomSolution(long int *s);
 void chenery_and_watanabe(long int *s);
-void VND(long int *s, int order);
-void VNS(long int *s, int order);
 
-int randomIterativeImprovement(long int *s, Neighborhood neighborhood, PivotingRule pivotingRule, InitialSolution initialSolution, double wp);
+void VND(long int *s, int order);
 int iterativeImprovement(long int *s, Neighborhood neighborhood, PivotingRule pivotingRule, InitialSolution initialSolution);
+
+int randomIterativeImprovement(long int *s, Neighborhood neighborhood, PivotingRule pivotingRule, InitialSolution initialSolution, double wp, double terminationTime);
+void VNS(long int *s, int order, double terminationTime);
+
+double VNS_QRTD(
+    long int *s,
+    int order,
+    long long int bestKnown,
+    double thresholdPercent,
+    double cutoffTime
+);
+
+double randomIterativeImprovement_QRTD(
+    long int *s,
+    Neighborhood neighborhood,
+    InitialSolution initialSolution,
+    double wp,
+    long long int bestKnown,
+    double thresholdPercent,
+    double cutoffTime
+) ;
 
 #endif

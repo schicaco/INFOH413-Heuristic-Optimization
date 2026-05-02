@@ -1,6 +1,4 @@
 instance,pivoting_rule,neighborhood,initial_solution,best_known,cost,delta_percent,time_seconds
-N-tiw56r66_150,best,transpose,random,1940755,1257041,35.229279,0.030988
-N-tiw56r66_150,best,transpose,cw,1940755,1615067,16.781510,0.043630
 N-tiw56r66_150,best,transpose,random,1940755,1409970,27.349408,0.019759
 N-tiw56r66_150,best,transpose,cw,1940755,1630032,16.010419,0.021668
 N-tiw56r66_150,best,exchange,random,1940755,1907185,1.729739,45.858580
