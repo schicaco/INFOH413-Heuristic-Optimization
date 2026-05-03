@@ -538,8 +538,6 @@ static void copySolution(long int *destination, const long int *source) {
 }
 
 void VNS(long int *s, int order, double terminationTime) {
-    int iter = 0;
-    int noImprovement = 0;
     int k;
     long long int bestCost;
     long long int candidateCost;
@@ -577,7 +575,7 @@ void VNS(long int *s, int order, double terminationTime) {
     while (elapsed_time(VIRTUAL) - startTime < terminationTime) {
         k = 0;
         
-        while (k < 3) {
+        while (k < 3 && elapsed_time(VIRTUAL) - startTime < terminationTime) {
             copySolution(candidate, s);
             candidateCost = bestCost;
 
@@ -591,14 +589,10 @@ void VNS(long int *s, int order, double terminationTime) {
                 copySolution(s, candidate);
                 bestCost = candidateCost;
                 k = 0;
-                noImprovement = 0;
             } else {
                 k++;
             }
         }
-
-        iter++;
-        noImprovement++;
     }
 
     free(candidate);
@@ -609,17 +603,12 @@ void VNS(long int *s, int order, double terminationTime) {
 
 int reachedTarget(long long int currentCost, long long int bestKnown, double thresholdPercent) {
     double target = bestKnown * (1.0 - thresholdPercent / 100.0);
+    // printf("CurrentCost: %lld, Target: %.2f\n", currentCost, target);
     return currentCost >= target;
 }
 
-double randomIterativeImprovement_QRTD(
-    long int *s,
-    Neighborhood neighborhood,
-    InitialSolution initialSolution,
-    double wp,
-    long long int bestKnown,
-    double thresholdPercent,
-    double cutoffTime
+double randomIterativeImprovement_QRTD(long int *s,Neighborhood neighborhood,InitialSolution initialSolution,
+    double wp, long long int bestKnown, double thresholdPercent,   double cutoffTime
 ) {
     long long int currentCost;
     double hitTime = -1.0;
@@ -656,18 +645,15 @@ double randomIterativeImprovement_QRTD(
 }
 
 
-double VNS_QRTD(
-    long int *s,
-    int order,
-    long long int bestKnown,
-    double thresholdPercent,
-    double cutoffTime
-) {
+double VNS_QRTD(long int *s,int order,long long int bestKnown,double thresholdPercent,double cutoffTime) {
     int k;
     long long int bestCost;
     long long int candidateCost;
     long int *candidate;
     double hitTime = -1.0;
+
+    long int noImprovementCounter = 0;
+    long int maxNoImprovement = 2000; // Arbitrary threshold for diversification
 
     Neighborhood neighborhoods[3];
 
@@ -704,20 +690,26 @@ double VNS_QRTD(
             candidateCost = bestCost;
 
             randomImprovement(candidate, neighborhoods[k], &candidateCost);
-            localSearchFromCurrent(candidate, neighborhoods[0], FIRST_IMPROVEMENT, &candidateCost);
+            localSearchFromCurrent(candidate, neighborhoods[2], FIRST_IMPROVEMENT, &candidateCost);
 
             if (candidateCost > bestCost) {
                 copySolution(s, candidate);
                 bestCost = candidateCost;
                 k = 0;
+                noImprovementCounter = 0; // Reset the counter when improvement is found
             } else {
                 k++;
+                noImprovementCounter++; // Increment the counter when no improvement is found
             }
 
             if (reachedTarget(bestCost, bestKnown, thresholdPercent)) {
                 hitTime = elapsed_time(VIRTUAL);
                 free(candidate);
                 return hitTime;
+            }
+            else if (noImprovementCounter >= maxNoImprovement) {
+                free(candidate);
+                return -1.0; // Indicate failure to reach target within cutoff time
             }
         }
     }

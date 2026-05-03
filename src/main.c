@@ -371,7 +371,7 @@ void runAllMode(char *directory) {
 
         // runAllIterImprovementAlgo(currentSolution, bestKnown, entry->d_name);
         // runAllVNDAlgo(currentSolution, bestKnown, entry->d_name);
-        runAllRII(currentSolution, bestKnown, entry->d_name, wp, terminationTime);
+        // runAllRII(currentSolution, bestKnown, entry->d_name, wp, terminationTime);
         runAllVNSAlgo(currentSolution, bestKnown, entry->d_name, terminationTime);
         free(currentSolution);
     }  
@@ -384,8 +384,8 @@ void runAllMode(char *directory) {
 
 void runQRTDExperiment(const char *instanceName,const char *filePath,long long int bestKnown, char *outputFile) {
     int run;
-    double thresholds[] = {0.1, 0.25, 0.5};
-    int nThresholds = 3;
+    double thresholds[] = {0.5};
+    int nThresholds = 1;
 
     double averageVNDTime = 0.16120801282051284;
     double terminationTime = averageVNDTime * 500;
@@ -423,14 +423,15 @@ void runQRTDExperiment(const char *instanceName,const char *filePath,long long i
 
             double hitTime = randomIterativeImprovement_QRTD(s,INSERT,CHENERY_WATANABE,0.3,bestKnown,threshold,cutoffTime);
 
-            fprintf(csv, "%s,RII_insert_cw,%.2f,%d,%f,%f\n",
+            fprintf(csv, "%s,%s,%.2f,%d,%f,%f\n",
                     instanceName, 
+                    "RII_insert_cw",
                     threshold,
                     run, 
                     hitTime, 
                     cutoffTime);
 
-            free(s);
+            fflush(csv);
         }
 
         for (run = 0; run < 25; run++) {
@@ -443,13 +444,14 @@ void runQRTDExperiment(const char *instanceName,const char *filePath,long long i
 
             double hitTime = VNS_QRTD(s,2,bestKnown,threshold,cutoffTime);
 
-            fprintf(csv, "%s,VNS_order2,%.2f,%d,%f,%f\n",
+            fprintf(csv, "%s,%s,%.2f,%d,%f,%f\n",
                     instanceName, 
+                    "VNS_order2",
                     threshold,
                     run, 
                     hitTime, 
                     cutoffTime);
-            free(s);
+            fflush(csv);
         }
     }
 
@@ -477,8 +479,9 @@ int main(int argc, char **argv) {
     if (RunAllMode) {
         // runAllMode("instances_150");
 
-        runQRTDExperiment("N-stabu2_150", "instances_150/N-stabu2_150", 4327538, "qrt_results_stabu2.csv");
-        runQRTDExperiment("N-t70d11xn_150", "instances_150/N-t70d11xn_150", 15207063, "qrt_results_t70d11xn.csv");
+        // runQRTDExperiment("N-stabu2_150", "instances_150/N-stabu2_150", 4327538, "qrt_results_stabu2.csv");
+        // runQRTDExperiment("N-t65l11xx_150", "instances_150/N-t65l11xx_150", 253396, "qrt_results_t65l11xx.csv");
+        runQRTDExperiment("N-t70l11xx_150", "instances_150/N-t70l11xx_150", 436862, "qrt_results_t70l11xx_150.csv");
     } 
     // else if (RunRII){
     //     runAllRII(NULL, 0, "instances_150"); // Placeholder, should read instance and best known value
