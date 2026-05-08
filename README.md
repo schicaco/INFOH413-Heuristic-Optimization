@@ -27,9 +27,9 @@ Examples:
 ./lop -i <instance file> --best --exchange --random
 
 -----------------------------------------------------------------------------------
-Option 2 : run all combinaisons for II over all files as well as VND over all instances from a folder 
+Option 2 : run all algorithm on all instances from a folder
 ----------------------------------------------------------------------------------- 
-./lop -all  
+./lop -all  --folder <folder_name>
 
 -----------------------------------------------------------
 Option 3 : run one algorithm on all instances from a folder
