@@ -304,23 +304,23 @@ void runAllMode(char *directory) {
     double wp = 0.3;
     printf("chosen wp for RII: %f\n", wp);
 
-    // FILE *csv = fopen("iterative_improvement_results.csv", "r");
-    // if (!csv) {
-    //     csv = fopen("iterative_improvement_results.csv", "w");
-    //     fprintf(csv, "instance,pivoting_rule,neighborhood,initial_solution,best_known,cost,delta_percent,time_seconds\n");
-    //     fclose(csv);
-    // } else {
-    //     fclose(csv);
-    // }
+    FILE *csv = fopen("iterative_improvement_results.csv", "r");
+    if (!csv) {
+        csv = fopen("iterative_improvement_results.csv", "w");
+        fprintf(csv, "instance,pivoting_rule,neighborhood,initial_solution,best_known,cost,delta_percent,time_seconds\n");
+        fclose(csv);
+    } else {
+        fclose(csv);
+    }
 
-    // csv = fopen("vnd_results.csv", "r");
-    // if (!csv) {
-    //     csv = fopen("vnd_results.csv", "w");
-    //     fprintf(csv, "instance,order,best_known,cost,delta_percent,time_seconds\n");
-    //     fclose(csv);
-    // } else {
-    //     fclose(csv);
-    // }
+    csv = fopen("vnd_results.csv", "r");
+    if (!csv) {
+        csv = fopen("vnd_results.csv", "w");
+        fprintf(csv, "instance,order,best_known,cost,delta_percent,time_seconds\n");
+        fclose(csv);
+    } else {
+        fclose(csv);
+    }
 
     FILE *csv = fopen("rii_results.csv", "r");
     if (!csv) {
@@ -369,9 +369,9 @@ void runAllMode(char *directory) {
             continue;
         }
 
-        // runAllIterImprovementAlgo(currentSolution, bestKnown, entry->d_name);
-        // runAllVNDAlgo(currentSolution, bestKnown, entry->d_name);
-        // runAllRII(currentSolution, bestKnown, entry->d_name, wp, terminationTime);
+        runAllIterImprovementAlgo(currentSolution, bestKnown, entry->d_name);
+        runAllVNDAlgo(currentSolution, bestKnown, entry->d_name);
+        runAllRII(currentSolution, bestKnown, entry->d_name, wp, terminationTime);
         runAllVNSAlgo(currentSolution, bestKnown, entry->d_name, terminationTime);
         free(currentSolution);
     }  
@@ -477,11 +477,11 @@ int main(int argc, char **argv) {
     readOpts(argc, argv);
 
     if (RunAllMode) {
-        // runAllMode("instances_150");
+        runAllMode("instances_150");
 
         // runQRTDExperiment("N-stabu2_150", "instances_150/N-stabu2_150", 4327538, "qrt_results_stabu2.csv");
         // runQRTDExperiment("N-t65l11xx_150", "instances_150/N-t65l11xx_150", 253396, "qrt_results_t65l11xx.csv");
-        runQRTDExperiment("N-t70l11xx_150", "instances_150/N-t70l11xx_150", 436862, "qrt_results_t70l11xx_150.csv");
+        // runQRTDExperiment("N-t70l11xx_150", "instances_150/N-t70l11xx_150", 436862, "qrt_results_t70l11xx_150.csv");
     } 
     // else if (RunRII){
     //     runAllRII(NULL, 0, "instances_150"); // Placeholder, should read instance and best known value

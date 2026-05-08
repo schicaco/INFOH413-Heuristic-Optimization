@@ -603,7 +603,6 @@ void VNS(long int *s, int order, double terminationTime) {
 
 int reachedTarget(long long int currentCost, long long int bestKnown, double thresholdPercent) {
     double target = bestKnown * (1.0 - thresholdPercent / 100.0);
-    // printf("CurrentCost: %lld, Target: %.2f\n", currentCost, target);
     return currentCost >= target;
 }
 
@@ -652,9 +651,6 @@ double VNS_QRTD(long int *s,int order,long long int bestKnown,double thresholdPe
     long int *candidate;
     double hitTime = -1.0;
 
-    long int noImprovementCounter = 0;
-    long int maxNoImprovement = 2000; // Arbitrary threshold for diversification
-
     Neighborhood neighborhoods[3];
 
     if (order == 1) {
@@ -696,20 +692,14 @@ double VNS_QRTD(long int *s,int order,long long int bestKnown,double thresholdPe
                 copySolution(s, candidate);
                 bestCost = candidateCost;
                 k = 0;
-                noImprovementCounter = 0; // Reset the counter when improvement is found
             } else {
                 k++;
-                noImprovementCounter++; // Increment the counter when no improvement is found
             }
 
             if (reachedTarget(bestCost, bestKnown, thresholdPercent)) {
                 hitTime = elapsed_time(VIRTUAL);
                 free(candidate);
                 return hitTime;
-            }
-            else if (noImprovementCounter >= maxNoImprovement) {
-                free(candidate);
-                return -1.0; // Indicate failure to reach target within cutoff time
             }
         }
     }
