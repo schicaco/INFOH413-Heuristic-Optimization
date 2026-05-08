@@ -10,8 +10,12 @@
 #include "optimization.h"
 
 char *FileName;
+char *FolderName;
 int RunAllMode = 0;
+int RunII = 0;
+int RunVND = 0;
 int RunRII = 0;
+int RunVNS = 0;
 
 PivotingRule PivotingRuleChoice;
 Neighborhood NeighborhoodChoice;
@@ -24,25 +28,34 @@ void readOpts(int argc, char **argv) {
 
     struct option long_options[] = {
         {"all",       no_argument, 0, 'a'},
-        {"rii",       no_argument, 0, '2'},
-        {"first",     no_argument, 0, '3'},
-        {"best",      no_argument, 0, '4'},
-        {"transpose", no_argument, 0, '5'},
-        {"exchange",  no_argument, 0, '6'},
-        {"insert",    no_argument, 0, '7'},
-        {"random",    no_argument, 0, '8'},
-        {"cw",        no_argument, 0, '9'},
+        {"folder",    required_argument, 0, 'f'},
+        {"ii",        no_argument, 0, '1'},
+        {"vnd",       no_argument, 0, '2'},
+        {"rii",       no_argument, 0, '3'},
+        {"vns",       no_argument, 0, '4'},
+        {"first",     no_argument, 0, '5'},
+        {"best",      no_argument, 0, '6'},
+        {"transpose", no_argument, 0, '7'},
+        {"exchange",  no_argument, 0, '8'},
+        {"insert",    no_argument, 0, '9'},
+        {"random",    no_argument, 0, 'r'},
+        {"cw",        no_argument, 0, 'c'},
         {0, 0, 0, 0}
     };
 
     FileName = NULL;
+    FolderName = NULL;
     RunAllMode = 0;
+    RunII = 0;
+    RunVND = 0;
+    RunRII = 0;
+    RunVNS = 0;
 
     PivotingRuleChoice = FIRST_IMPROVEMENT;
     NeighborhoodChoice = TRANSPOSE;
     InitialSolutionChoice = RANDOM;
 
-    while ((opt = getopt_long(argc, argv, "i:a", long_options, &option_index)) != -1) {
+    while ((opt = getopt_long(argc, argv, "i:f:a", long_options, &option_index)) != -1) {
         switch (opt) {
             case 'i':
                 FileName = (char *)malloc(strlen(optarg) + 1);
@@ -51,55 +64,97 @@ void readOpts(int argc, char **argv) {
                 }
                 strcpy(FileName, optarg);
                 break;
+
+            case 'f':
+                FolderName = (char *)malloc(strlen(optarg) + 1);
+                if (!FolderName) {
+                    fatal("readOpts: malloc failed for FolderName.");
+                }
+                strcpy(FolderName, optarg);
+                break;
                 
             case 'a':
                 RunAllMode = 1;
+                RunII = 1;
+                RunVND = 1;
+                RunRII = 1;
+                RunVNS = 1;
+                break;
+
+            case '1':
+                RunII = 1;
                 break;
 
             case '2':
-                RunRII = 1;
+                RunVND = 1;
                 break;
-                
+
             case '3':
-                PivotingRuleChoice = FIRST_IMPROVEMENT;
+                RunRII = 1;
                 break;
 
             case '4':
-                PivotingRuleChoice = BEST_IMPROVEMENT;
+                RunVNS = 1;
                 break;
-
+                
             case '5':
-                NeighborhoodChoice = TRANSPOSE;
+                PivotingRuleChoice = FIRST_IMPROVEMENT;
                 break;
 
             case '6':
-                NeighborhoodChoice = EXCHANGE;
+                PivotingRuleChoice = BEST_IMPROVEMENT;
                 break;
 
             case '7':
-                NeighborhoodChoice = INSERT;
+                NeighborhoodChoice = TRANSPOSE;
                 break;
 
             case '8':
-                InitialSolutionChoice = RANDOM;
+                NeighborhoodChoice = EXCHANGE;
                 break;
 
             case '9':
+                NeighborhoodChoice = INSERT;
+                break;
+
+            case 'r':
+                InitialSolutionChoice = RANDOM;
+                break;
+
+            case 'c':
                 InitialSolutionChoice = CHENERY_WATANABE;
                 break;
 
             default:
                 fprintf(stderr,
                     "Usage:\n"
-                    "  ./lop -all\n"
+                    "  ./lop --all --folder <instances_folder>\n"
+                    "  ./lop --ii|--vnd|--rii|--vns --folder <instances_folder>\n"
+                    "  ./lop --ii|--vnd|--rii|--vns <instances_folder>\n"
                     "  ./lop -i <instance file> [--first|--best] [--transpose|--exchange|--insert] [--random|--cw]\n");
                 exit(1);
         }
     }
 
-    /* If not in all-mode, require an instance file */
-    if (!RunAllMode && !FileName) {
-        fprintf(stderr, "No instance file provided. Use -i <instance file> or -all.\n");
+    /* Optional positional folder argument for batch mode, e.g. ./lop --rii instances_150 */
+    if ((RunAllMode || RunII || RunVND || RunRII || RunVNS) && !FolderName && optind < argc) {
+        FolderName = (char *)malloc(strlen(argv[optind]) + 1);
+        if (!FolderName) {
+            fatal("readOpts: malloc failed for FolderName.");
+        }
+        strcpy(FolderName, argv[optind]);
+    }
+
+    /* If a batch algorithm is selected, require a folder. */
+    if ((RunAllMode || RunII || RunVND || RunRII || RunVNS) && !FolderName) {
+        fprintf(stderr, "No instances folder provided. Use --folder <instances_folder> or pass it as the last argument.\n");
+        fprintf(stderr, "Example: ./lop --rii instances_150\n");
+        exit(1);
+    }
+
+    /* If no batch algorithm was selected, require an instance file for single-instance mode. */
+    if (!RunAllMode && !RunII && !RunVND && !RunRII && !RunVNS && !FileName) {
+        fprintf(stderr, "No instance file provided. Use -i <instance file> or select --ii, --vnd, --rii, --vns, or --all with a folder.\n");
         exit(1);
     }
 }
@@ -299,46 +354,21 @@ void runAllMode(char *directory) {
     double averageVNDTime = 0.16120801282051284;
     double terminationTime = averageVNDTime * 500;
     
-    printf("SLS termination time = 500 * average VND time = %.6f seconds\n", terminationTime);
     
     double wp = 0.3;
-    printf("chosen wp for RII: %f\n", wp);
-
-    FILE *csv = fopen("iterative_improvement_results.csv", "r");
-    if (!csv) {
-        csv = fopen("iterative_improvement_results.csv", "w");
-        fprintf(csv, "instance,pivoting_rule,neighborhood,initial_solution,best_known,cost,delta_percent,time_seconds\n");
-        fclose(csv);
-    } else {
-        fclose(csv);
+    printf("Selected algorithms:");
+    if (RunII) printf(" II");
+    if (RunVND) printf(" VND");
+    if (RunRII) {
+        printf(" RII");
+        printf("chosen wp for RII: %f\n", wp);
+        printf("SLS termination time = 500 * average VND time = %.6f seconds\n", terminationTime);
     }
-
-    csv = fopen("vnd_results.csv", "r");
-    if (!csv) {
-        csv = fopen("vnd_results.csv", "w");
-        fprintf(csv, "instance,order,best_known,cost,delta_percent,time_seconds\n");
-        fclose(csv);
-    } else {
-        fclose(csv);
+    if (RunVNS) {
+        printf(" VNS");
+        printf("SLS termination time = 500 * average VND time = %.6f seconds\n", terminationTime);
     }
-
-    FILE *csv = fopen("rii_results.csv", "r");
-    if (!csv) {
-        csv = fopen("rii_results.csv", "w");
-        fprintf(csv, "instance,pivoting_rule,neighborhood,initial_solution,best_known,cost,delta_percent,time_seconds\n");
-        fclose(csv);
-    } else {
-        fclose(csv);
-    }
-
-    csv = fopen("vns_results.csv", "r");
-    if (!csv) {
-        csv = fopen("vns_results.csv", "w");
-        fprintf(csv, "instance,order,best_known,cost,delta_percent,time_seconds\n");
-        fclose(csv);
-    } else {
-        fclose(csv);
-    }
+    printf("\n");
 
     dir = opendir(directory);
     if (!dir) {
@@ -369,16 +399,24 @@ void runAllMode(char *directory) {
             continue;
         }
 
-        runAllIterImprovementAlgo(currentSolution, bestKnown, entry->d_name);
-        runAllVNDAlgo(currentSolution, bestKnown, entry->d_name);
-        runAllRII(currentSolution, bestKnown, entry->d_name, wp, terminationTime);
-        runAllVNSAlgo(currentSolution, bestKnown, entry->d_name, terminationTime);
+        if (RunII) {
+            runAllIterImprovementAlgo(currentSolution, bestKnown, entry->d_name);
+        }
+        if (RunVND) {
+            runAllVNDAlgo(currentSolution, bestKnown, entry->d_name);
+        }
+        if (RunRII) {
+            runAllRII(currentSolution, bestKnown, entry->d_name, wp, terminationTime);
+        }
+        if (RunVNS) {
+            runAllVNSAlgo(currentSolution, bestKnown, entry->d_name, terminationTime);
+        }
         free(currentSolution);
     }  
 
 
     closedir(dir);
-    printf("\nResults saved to iterative_improvement_results.csv and vnd_results.csv\n");
+    printf("\nSelected experiment results have been saved to the corresponding CSV files.\n");
 }
 
 
@@ -462,33 +500,75 @@ void runQRTDExperiment(const char *instanceName,const char *filePath,long long i
 int main(int argc, char **argv) {
     setbuf(stdout, NULL);
     setbuf(stderr, NULL);
+    FILE *csv;
 
     Seed = 123; // fixed seed for reproducibility
 
     if (argc < 2) {
         fprintf(stderr,
             "Usage:\n"
-            "  ./lop -rii\n"
-            "  ./lop -a\n"
+            "  ./lop --all --folder <instances_folder>\n"
+            "  ./lop --ii|--vnd|--rii|--vns --folder <instances_folder>\n"
+            "  ./lop --ii|--vnd|--rii|--vns <instances_folder>\n"
             "  ./lop -i <instance file> [--first|--best] [--transpose|--exchange|--insert] [--random|--cw]\n");
         return 1;
     }
 
     readOpts(argc, argv);
 
-    if (RunAllMode) {
-        runAllMode("instances_150");
+    if (RunII){
+        csv = fopen("iterative_improvement_results.csv", "r");
+        if (!csv) {
+            csv = fopen("iterative_improvement_results.csv", "w");
+            fprintf(csv, "instance,pivoting_rule,neighborhood,initial_solution,best_known,cost,delta_percent,time_seconds\n");
+            fclose(csv);
+        } else {
+            fclose(csv);
+        }
+    }
+    if (RunVND) {
+        csv = fopen("vnd_results.csv", "r");
+        if (!csv) {
+            csv = fopen("vnd_results.csv", "w");
+            fprintf(csv, "instance,order,best_known,cost,delta_percent,time_seconds\n");
+            fclose(csv);
+        } else {
+            fclose(csv);
+        }
+    }
+    
+    if (RunRII) {
+        csv = fopen("rii_results.csv", "r");
+        if (!csv) {
+            csv = fopen("rii_results.csv", "w");
+            fprintf(csv, "instance,pivoting_rule,neighborhood,initial_solution,best_known,cost,delta_percent,time_seconds\n");
+            fclose(csv);
+        } else {
+            fclose(csv);
+        }
+    }
 
-        // runQRTDExperiment("N-stabu2_150", "instances_150/N-stabu2_150", 4327538, "qrt_results_stabu2.csv");
-        // runQRTDExperiment("N-t65l11xx_150", "instances_150/N-t65l11xx_150", 253396, "qrt_results_t65l11xx.csv");
-        // runQRTDExperiment("N-t70l11xx_150", "instances_150/N-t70l11xx_150", 436862, "qrt_results_t70l11xx_150.csv");
-    } 
-    // else if (RunRII){
-    //     runAllRII(NULL, 0, "instances_150"); // Placeholder, should read instance and best known value
-    // } 
+    if (RunVNS) {
+        csv = fopen("vns_results.csv", "r");
+        if (!csv) {
+            csv = fopen("vns_results.csv", "w");
+            fprintf(csv, "instance,order,best_known,cost,delta_percent,time_seconds\n");
+            fclose(csv);
+        } else {
+            fclose(csv);
+        }
+    }
+    if (RunAllMode || RunII || RunVND || RunRII || RunVNS) {
+        runAllMode(FolderName);
+    }
+    
     else {
         runSingleInstanceMode();
     }
-
+    
+    // QRTD experiments can still be launched manually if needed:
+    // runQRTDExperiment("N-stabu2_150", "instances_150/N-stabu2_150", 4327538, "qrt_results_stabu2.csv");
+    // runQRTDExperiment("N-t65l11xx_150", "instances_150/N-t65l11xx_150", 253396, "qrt_results_t65l11xx.csv");
+    // runQRTDExperiment("N-t70l11xx_150", "instances_150/N-t70l11xx_150", 436862, "qrt_results_t70l11xx_150.csv");
     return 0;
 } 
